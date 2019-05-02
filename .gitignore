@@ -4,3 +4,7 @@ data
 DCNv2_op
 demo
 model
+output/
+build/
+*.pyd
+*.c

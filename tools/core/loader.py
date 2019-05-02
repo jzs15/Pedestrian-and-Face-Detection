@@ -23,8 +23,7 @@ def par_assign_anchor_wrapper(cfg, iroidb, feat_sym, feat_strides, anchor_scales
 
 
 class TestLoader(mx.io.DataIter):
-    def __init__(self, roidb, config, batch_size=1, shuffle=False,
-                 has_rpn=False):
+    def __init__(self, roidb, config, batch_size=1, shuffle=False):
         super(TestLoader, self).__init__()
 
         # save parameters as properties
@@ -32,17 +31,13 @@ class TestLoader(mx.io.DataIter):
         self.roidb = roidb
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.has_rpn = has_rpn
 
         # infer properties from roidb
         self.size = len(self.roidb)
         self.index = np.arange(self.size)
 
         # decide data and label names (only for training)
-        if has_rpn:
-            self.data_name = ['data', 'im_info']
-        else:
-            self.data_name = ['data', 'rois']
+        self.data_name = ['data', 'im_info']
         self.label_name = None
 
         # status variable for synchronization between get_data and get_label
@@ -102,10 +97,7 @@ class TestLoader(mx.io.DataIter):
         cur_from = self.cur
         cur_to = min(cur_from + self.batch_size, self.size)
         roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
-        if self.has_rpn:
-            data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
-        else:
-            data, label, im_info = get_rcnn_testbatch(roidb, self.cfg)
+        data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
         self.data = [[mx.nd.array(idata[name]) for name in self.data_name] for idata in data]
         self.im_info = im_info
 
@@ -113,10 +105,7 @@ class TestLoader(mx.io.DataIter):
         cur_from = self.cur
         cur_to = min(cur_from + self.batch_size, self.size)
         roidb = [self.roidb[self.index[i]] for i in range(cur_from, cur_to)]
-        if self.has_rpn:
-            data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
-        else:
-            data, label, im_info = get_rcnn_testbatch(roidb, self.cfg)
+        data, label, im_info = get_rpn_testbatch(roidb, self.cfg)
         self.data = [mx.nd.array(data[name]) for name in self.data_name]
         self.im_info = im_info
 

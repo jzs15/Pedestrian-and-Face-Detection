@@ -4,7 +4,6 @@ from easydict import EasyDict as edict
 
 config = edict()
 
-config.MXNET_VERSION = ''
 config.output_path = ''
 config.symbol = ''
 config.gpus = ''
@@ -20,14 +19,14 @@ config.default.kvstore = 'device'
 config.network = edict()
 config.network.pretrained = ''
 config.network.pretrained_epoch = 0
-config.network.PIXEL_MEANS = np.array([0, 0, 0])
-config.network.IMAGE_STRIDE = 0
-config.network.RPN_FEAT_STRIDE = 16
+config.network.PIXEL_MEANS = np.array([103.06, 115.90, 123.15])
+config.network.IMAGE_STRIDE = 32
+config.network.RPN_FEAT_STRIDE = [4, 8, 16, 32, 64]
 config.network.RCNN_FEAT_STRIDE = 16
-config.network.FIXED_PARAMS = ['gamma', 'beta']
-config.network.FIXED_PARAMS_SHARED = ['gamma', 'beta']
-config.network.ANCHOR_SCALES = (8, 16, 32)
-config.network.ANCHOR_RATIOS = (0.5, 1, 2)
+config.network.FIXED_PARAMS = ['conv1', 'bn_conv1', 'res2', 'bn2', 'gamma', 'beta']
+config.network.FIXED_PARAMS_SHARED = ['conv1', 'bn_conv1', 'res2', 'bn2', 'res3', 'bn3', 'res4', 'bn4', 'gamma', 'beta']
+config.network.ANCHOR_SCALES = [8]
+config.network.ANCHOR_RATIOS = [0.5, 1, 2]
 config.network.NUM_ANCHORS = len(config.network.ANCHOR_SCALES) * len(config.network.ANCHOR_RATIOS)
 
 # dataset related params
@@ -131,8 +130,6 @@ config.TRAIN.BBOX_STDS = (0.1, 0.1, 0.2, 0.2)
 config.TEST = edict()
 
 # R-CNN testing
-# use rpn to generate proposal
-config.TEST.HAS_RPN = False
 # size of images for each device
 config.TEST.BATCH_IMAGES = 1
 
@@ -161,7 +158,6 @@ config.TEST.USE_SOFTNMS = False
 
 
 def update_config(config_file):
-    exp_config = None
     with open(config_file) as f:
         exp_config = edict(yaml.load(f))
         for k, v in exp_config.items():

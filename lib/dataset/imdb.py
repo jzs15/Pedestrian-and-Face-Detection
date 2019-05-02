@@ -5,8 +5,6 @@ from PIL import Image
 from bbox.bbox_transform import bbox_overlaps
 from multiprocessing import Pool
 
-def get_flipped_entry_outclass_wrapper(IMDB_instance, seg_rec):
-    return IMDB_instance.get_flipped_entry(seg_rec)
 
 class IMDB(object):
     def __init__(self, name, image_set, root_path, dataset_path, result_path=None):
@@ -37,9 +35,6 @@ class IMDB(object):
         raise NotImplementedError
 
     def evaluate_detections(self, detections):
-        raise NotImplementedError
-
-    def evaluate_segmentations(self, segmentations):
         raise NotImplementedError
 
     @property
@@ -152,35 +147,6 @@ class IMDB(object):
 
         return roidb
 
-    def get_flipped_entry(self, seg_rec):
-        return {'image': self.flip_and_save(seg_rec['image']),
-                'seg_cls_path': self.flip_and_save(seg_rec['seg_cls_path']),
-                'height': seg_rec['height'],
-                'width': seg_rec['width'],
-                'flipped': True}
-
-    def append_flipped_images_for_segmentation(self, segdb):
-        """
-        append flipped images to an roidb
-        flip boxes coordinates, images will be actually flipped when loading into network
-        :param segdb: [image_index]['seg_cls_path', 'flipped']
-        :return: segdb: [image_index]['seg_cls_path', 'flipped']
-        """
-        print 'append flipped images to segdb'
-        assert self.num_images == len(segdb)
-        pool = Pool(processes=1)
-        pool_result = []
-        for i in range(self.num_images):
-            seg_rec = segdb[i]
-            pool_result.append(pool.apply_async(get_flipped_entry_outclass_wrapper, args=(self, seg_rec, )))
-            #self.get_flipped_entry(seg_rec, segdb_flip, i)
-        pool.close()
-        pool.join()
-        segdb_flip = [res_instance.get() for res_instance in pool_result]
-        segdb += segdb_flip
-        self.image_set_index *= 2
-        return segdb
-
     def append_flipped_images(self, roidb):
         """
         append flipped images to an roidb
@@ -207,11 +173,6 @@ class IMDB(object):
                      'max_classes': roidb[i]['max_classes'],
                      'max_overlaps': roidb[i]['max_overlaps'],
                      'flipped': True}
-
-            # if roidb has mask
-            if 'cache_seg_inst' in roi_rec:
-                [filename, extension] = os.path.splitext(roi_rec['cache_seg_inst'])
-                entry['cache_seg_inst'] = os.path.join(filename + '_flip' + extension)
 
             roidb.append(entry)
 
