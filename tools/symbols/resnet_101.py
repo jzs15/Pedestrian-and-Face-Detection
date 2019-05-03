@@ -6,9 +6,6 @@ from operator_py.pyramid_proposal import *
 from operator_py.proposal_target import *
 from operator_py.fpn_roi_pooling import *
 from operator_py.box_annotator_ohem import *
-from operator_py.nms_multi_target import *
-from operator_py.learn_nms import *
-
 
 
 class ResNet101(Symbol):
@@ -1155,6 +1152,54 @@ class ResNet101(Symbol):
             'linear_out_' + str(index) + '_weight'])
         arg_params['linear_out_' + str(index) + '_bias'] = mx.nd.zeros(
             shape=self.arg_shape_dict['linear_out_' + str(index) + '_bias'])
+
+    @staticmethod
+    def extract_position_embedding(position_mat, feat_dim, wave_length=1000):
+        # position_mat, [num_rois, nongt_dim, 4]
+        feat_range = mx.sym.arange(0, feat_dim / 8)
+        dim_mat = mx.sym.broadcast_power(lhs=mx.sym.full((1,), wave_length),
+                                         rhs=(8. / feat_dim) * feat_range)
+        dim_mat = mx.sym.Reshape(dim_mat, shape=(1, 1, 1, -1))
+        position_mat = mx.sym.expand_dims(100.0 * position_mat, axis=3)
+        div_mat = mx.sym.broadcast_div(lhs=position_mat, rhs=dim_mat)
+        sin_mat = mx.sym.sin(data=div_mat)
+        cos_mat = mx.sym.cos(data=div_mat)
+        # embedding, [num_rois, nongt_dim, 4, feat_dim/4]
+        embedding = mx.sym.concat(sin_mat, cos_mat, dim=3)
+        # embedding, [num_rois, nongt_dim, feat_dim]
+        embedding = mx.sym.Reshape(embedding, shape=(0, 0, feat_dim))
+        return embedding
+
+    @staticmethod
+    def extract_position_matrix(bbox, nongt_dim):
+        xmin, ymin, xmax, ymax = mx.sym.split(data=bbox,
+                                              num_outputs=4, axis=1)
+        # [num_fg_classes, num_boxes, 1]
+        bbox_width = xmax - xmin + 1.
+        bbox_height = ymax - ymin + 1.
+        center_x = 0.5 * (xmin + xmax)
+        center_y = 0.5 * (ymin + ymax)
+        # [num_fg_classes, num_boxes, num_boxes]
+        delta_x = mx.sym.broadcast_minus(lhs=center_x,
+                                         rhs=mx.sym.transpose(center_x))
+        delta_x = mx.sym.broadcast_div(delta_x, bbox_width)
+        delta_x = mx.sym.log(mx.sym.maximum(mx.sym.abs(delta_x), 1e-3))
+        delta_y = mx.sym.broadcast_minus(lhs=center_y,
+                                         rhs=mx.sym.transpose(center_y))
+        delta_y = mx.sym.broadcast_div(delta_y, bbox_height)
+        delta_y = mx.sym.log(mx.sym.maximum(mx.sym.abs(delta_y), 1e-3))
+        delta_width = mx.sym.broadcast_div(lhs=bbox_width,
+                                           rhs=mx.sym.transpose(bbox_width))
+        delta_width = mx.sym.log(delta_width)
+        delta_height = mx.sym.broadcast_div(lhs=bbox_height,
+                                            rhs=mx.sym.transpose(bbox_height))
+        delta_height = mx.sym.log(delta_height)
+        concat_list = [delta_x, delta_y, delta_width, delta_height]
+        for idx, sym in enumerate(concat_list):
+            sym = mx.sym.slice_axis(sym, axis=1, begin=0, end=nongt_dim)
+            concat_list[idx] = mx.sym.expand_dims(sym, axis=2)
+        position_matrix = mx.sym.concat(*concat_list, dim=2)
+        return position_matrix
 
     def init_weight_rcnn(self, cfg, arg_params, aux_params):
         arg_params['fc_new_1_weight'] = mx.random.normal(0, 0.01, shape=self.arg_shape_dict['fc_new_1_weight'])

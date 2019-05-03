@@ -1,15 +1,10 @@
 import cPickle
 import mxnet as mx
-import numpy as np
 from resnet_101 import ResNet101
-from utils.symbol import Symbol
 from operator_py.pyramid_proposal import *
 from operator_py.proposal_target import *
 from operator_py.fpn_roi_pooling import *
 from operator_py.box_annotator_ohem import *
-from operator_py.nms_multi_target import *
-from operator_py.learn_nms import *
-from operator_py.relation import *
 
 
 class ResNet101Relation(ResNet101):
@@ -119,11 +114,15 @@ class ResNet101Relation(ResNet101):
         roi_pool = mx.symbol.Custom(data_p2=fpn_p2, data_p3=fpn_p3, data_p4=fpn_p4, data_p5=fpn_p5,
                                     rois=rois, op_type='fpn_roi_pooling', name='fpn_roi_pooling')
 
-        position_matrix = mx.sym.Custom(rois=rois, nongt_dim=nongt_dim, op_type='relation', name='relation')
+        sliced_rois = mx.sym.slice_axis(rois, axis=1, begin=1, end=None)
+        # [num_rois, nongt_dim, 4]
+        position_matrix = self.extract_position_matrix(sliced_rois, nongt_dim=nongt_dim)
+        # [num_rois, nongt_dim, 64]
+        position_embedding = self.extract_position_embedding(position_matrix, feat_dim=64)
 
         # 2 fc
         fc_new_1 = mx.symbol.FullyConnected(name='fc_new_1', data=roi_pool, num_hidden=1024)
-        attention_1 = self.attention_module_multi_head(fc_new_1, position_matrix,
+        attention_1 = self.attention_module_multi_head(fc_new_1, position_embedding,
                                                        nongt_dim=nongt_dim, fc_dim=16, feat_dim=1024,
                                                        index=1, group=16,
                                                        dim=(1024, 1024, 1024))
@@ -131,7 +130,7 @@ class ResNet101Relation(ResNet101):
         fc_new_1_relu = mx.sym.Activation(data=fc_new_1, act_type='relu', name='fc_new_1_relu')
 
         fc_new_2 = mx.symbol.FullyConnected(name='fc_new_2', data=fc_new_1_relu, num_hidden=1024)
-        attention_2 = self.attention_module_multi_head(fc_new_2, position_matrix,
+        attention_2 = self.attention_module_multi_head(fc_new_2, position_embedding,
                                                        nongt_dim=nongt_dim, fc_dim=16, feat_dim=1024,
                                                        index=2, group=16,
                                                        dim=(1024, 1024, 1024))

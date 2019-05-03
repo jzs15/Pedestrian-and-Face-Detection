@@ -1,51 +1,42 @@
 import mxnet as mx
-
+import numpy as np
 
 def extract_position_embedding(position_mat, feat_dim, wave_length=1000):
-    # position_mat, [num_rois, nongt_dim, 4]
-    feat_range = mx.sym.arange(0, feat_dim / 8)
-    dim_mat = mx.sym.broadcast_power(lhs=mx.sym.full((1,), wave_length),
-                                     rhs=(8. / feat_dim) * feat_range)
-    dim_mat = mx.sym.Reshape(dim_mat, shape=(1, 1, 1, -1))
-    position_mat = mx.sym.expand_dims(100.0 * position_mat, axis=3)
-    div_mat = mx.sym.broadcast_div(lhs=position_mat, rhs=dim_mat)
-    sin_mat = mx.sym.sin(data=div_mat)
-    cos_mat = mx.sym.cos(data=div_mat)
-    # embedding, [num_rois, nongt_dim, 4, feat_dim/4]
-    embedding = mx.sym.concat(sin_mat, cos_mat, dim=3)
-    # embedding, [num_rois, nongt_dim, feat_dim]
-    embedding = mx.sym.Reshape(embedding, shape=(0, 0, feat_dim))
+    pos_shape = position_mat.shape
+    feat_range = np.arange(0, feat_dim / 8)
+    dim_mat = np.power(np.full((1,), wave_length), (8. / feat_dim) * feat_range)
+    dim_mat = np.reshape(dim_mat, (1, 1, 1, -1))
+    position_mat = np.expand_dims(100.0 * position_mat, axis=3)
+    div_mat = position_mat / dim_mat
+    sin_mat = np.sin(div_mat)
+    cos_mat = np.cos(div_mat)
+    embedding = np.concatenate([sin_mat, cos_mat], axis=3)
+    embedding = np.reshape(embedding, (pos_shape[0], pos_shape[1], feat_dim))
     return embedding
 
 
 def extract_position_matrix(bbox, nongt_dim):
-    xmin, ymin, xmax, ymax = mx.sym.split(data=bbox,
-                                          num_outputs=4, axis=1)
-    # [num_fg_classes, num_boxes, 1]
+    xmin, ymin, xmax, ymax = np.split(bbox, 4, 1)
     bbox_width = xmax - xmin + 1.
     bbox_height = ymax - ymin + 1.
     center_x = 0.5 * (xmin + xmax)
     center_y = 0.5 * (ymin + ymax)
     # [num_fg_classes, num_boxes, num_boxes]
-    delta_x = mx.sym.broadcast_minus(lhs=center_x,
-                                     rhs=mx.sym.transpose(center_x))
-    delta_x = mx.sym.broadcast_div(delta_x, bbox_width)
-    delta_x = mx.sym.log(mx.sym.maximum(mx.sym.abs(delta_x), 1e-3))
-    delta_y = mx.sym.broadcast_minus(lhs=center_y,
-                                     rhs=mx.sym.transpose(center_y))
-    delta_y = mx.sym.broadcast_div(delta_y, bbox_height)
-    delta_y = mx.sym.log(mx.sym.maximum(mx.sym.abs(delta_y), 1e-3))
-    delta_width = mx.sym.broadcast_div(lhs=bbox_width,
-                                       rhs=mx.sym.transpose(bbox_width))
-    delta_width = mx.sym.log(delta_width)
-    delta_height = mx.sym.broadcast_div(lhs=bbox_height,
-                                        rhs=mx.sym.transpose(bbox_height))
-    delta_height = mx.sym.log(delta_height)
+    delta_x = center_x - center_x.T
+    delta_x = delta_x / bbox_width
+    delta_x = np.log(np.maximum(np.abs(delta_x), 1e-3))
+    delta_y = center_y - center_y.T
+    delta_y = delta_y / bbox_height
+    delta_y = np.log(np.maximum(np.abs(delta_y), 1e-3))
+    delta_width = bbox_width / bbox_width.T
+    delta_width = np.log(delta_width)
+    delta_height = bbox_height / bbox_height.T
+    delta_height = np.log(delta_height)
     concat_list = [delta_x, delta_y, delta_width, delta_height]
     for idx, sym in enumerate(concat_list):
-        sym = mx.sym.slice_axis(sym, axis=1, begin=0, end=nongt_dim)
-        concat_list[idx] = mx.sym.expand_dims(sym, axis=2)
-    position_matrix = mx.sym.concat(*concat_list, dim=2)
+        sym = sym[:, :nongt_dim]
+        concat_list[idx] = np.expand_dims(sym, axis=2)
+    position_matrix = np.concatenate(concat_list, axis=2)
     return position_matrix
 
 
@@ -56,8 +47,8 @@ class RelationOperator(mx.operator.CustomOp):
         self.nongt_dim = nongt_dim
 
     def forward(self, is_train, req, in_data, out_data, aux):
-        rois = in_data[0]
-        sliced_rois = mx.sym.slice_axis(rois, axis=1, begin=1, end=None)
+        rois = in_data[0].asnumpy()
+        sliced_rois = rois[:, 1:]
         position_matrix = extract_position_matrix(sliced_rois, nongt_dim=self.nongt_dim)
         position_embedding = extract_position_embedding(position_matrix, feat_dim=64)
         self.assign(out_data[0], req[0], position_embedding)
