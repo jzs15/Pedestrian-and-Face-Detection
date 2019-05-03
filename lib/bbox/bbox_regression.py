@@ -59,27 +59,8 @@ def add_bbox_regression_targets(roidb, cfg):
         max_classes = roidb[im_i]['max_classes']
         roidb[im_i]['bbox_targets'] = compute_bbox_regression_targets(rois, max_overlaps, max_classes, cfg)
 
-    if cfg.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
-        # use fixed / precomputed means and stds instead of empirical values
-        means = np.tile(np.array(cfg.TRAIN.BBOX_MEANS), (num_classes, 1))
-        stds = np.tile(np.array(cfg.TRAIN.BBOX_STDS), (num_classes, 1))
-    else:
-        # compute mean, std values
-        class_counts = np.zeros((num_classes, 1)) + 1e-14
-        sums = np.zeros((num_classes, 4))
-        squared_sums = np.zeros((num_classes, 4))
-        for im_i in range(num_images):
-            targets = roidb[im_i]['bbox_targets']
-            for cls in range(1, num_classes):
-                cls_indexes = np.where(targets[:, 0] > 0)[0] if cfg.CLASS_AGNOSTIC else np.where(targets[:, 0] == cls)[0]
-                if cls_indexes.size > 0:
-                    class_counts[cls] += cls_indexes.size
-                    sums[cls, :] += targets[cls_indexes, 1:].sum(axis=0)
-                    squared_sums[cls, :] += (targets[cls_indexes, 1:] ** 2).sum(axis=0)
-
-        means = sums / class_counts
-        # var(x) = E(x^2) - E(x)^2
-        stds = np.sqrt(squared_sums / class_counts - means ** 2)
+    means = np.tile(np.array(cfg.TRAIN.BBOX_MEANS), (num_classes, 1))
+    stds = np.tile(np.array(cfg.TRAIN.BBOX_STDS), (num_classes, 1))
 
     print 'bbox target means:'
     print means

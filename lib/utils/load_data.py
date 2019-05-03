@@ -2,20 +2,20 @@ import numpy as np
 from dataset import *
 
 
-def load_gt_roidb(dataset_name, image_set_name, root_path, dataset_path, result_path=None,
+def load_gt_roidb(dataset_name, image_set_name, root_path, result_path=None,
                   flip=False):
     """ load ground truth roidb """
-    imdb = eval(dataset_name)(image_set_name, root_path, dataset_path, result_path)
+    imdb = eval(dataset_name)(image_set_name, root_path, result_path)
     roidb = imdb.gt_roidb()
     if flip:
         roidb = imdb.append_flipped_images(roidb)
     return roidb
 
 
-def load_proposal_roidb(dataset_name, image_set_name, root_path, dataset_path, result_path=None,
+def load_proposal_roidb(dataset_name, image_set_name, root_path, result_path=None,
                         proposal='rpn', append_gt=True, flip=False):
     """ load proposal roidb (append_gt when training) """
-    imdb = eval(dataset_name)(image_set_name, root_path, dataset_path, result_path)
+    imdb = eval(dataset_name)(image_set_name, root_path, result_path)
 
     gt_roidb = imdb.gt_roidb()
     roidb = eval('imdb.' + proposal + '_roidb')(gt_roidb, append_gt)

@@ -145,25 +145,18 @@ class ResNet101Relation(ResNet101):
         bbox_pred = mx.symbol.FullyConnected(name='bbox_pred', data=fc_new_2_relu, num_hidden=num_reg_classes * 4)
 
         if is_train:
-            if cfg.TRAIN.ENABLE_OHEM:
-                labels_ohem, bbox_weights_ohem = mx.sym.Custom(op_type='BoxAnnotatorOHEM', num_classes=num_classes,
-                                                               num_reg_classes=num_reg_classes,
-                                                               roi_per_img=cfg.TRAIN.BATCH_ROIS_OHEM,
-                                                               cls_score=cls_score, bbox_pred=bbox_pred, labels=label,
-                                                               bbox_targets=bbox_target, bbox_weights=bbox_weight)
-                cls_prob = mx.sym.SoftmaxOutput(name='cls_prob', data=cls_score, label=labels_ohem,
-                                                normalization='valid', use_ignore=True, ignore_label=-1)
-                bbox_loss_ = bbox_weights_ohem * mx.sym.smooth_l1(name='bbox_loss_', scalar=1.0,
-                                                                  data=(bbox_pred - bbox_target))
-                bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_,
-                                            grad_scale=1.0 / cfg.TRAIN.BATCH_ROIS_OHEM)
-                rcnn_label = labels_ohem
-            else:
-                cls_prob = mx.sym.SoftmaxOutput(name='cls_prob', data=cls_score, label=label, normalization='valid')
-                bbox_loss_ = bbox_weight * mx.sym.smooth_l1(name='bbox_loss_', scalar=1.0,
-                                                            data=(bbox_pred - bbox_target))
-                bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_, grad_scale=1.0 / cfg.TRAIN.BATCH_ROIS)
-                rcnn_label = label
+            labels_ohem, bbox_weights_ohem = mx.sym.Custom(op_type='BoxAnnotatorOHEM', num_classes=num_classes,
+                                                           num_reg_classes=num_reg_classes,
+                                                           roi_per_img=cfg.TRAIN.BATCH_ROIS_OHEM,
+                                                           cls_score=cls_score, bbox_pred=bbox_pred, labels=label,
+                                                           bbox_targets=bbox_target, bbox_weights=bbox_weight)
+            cls_prob = mx.sym.SoftmaxOutput(name='cls_prob', data=cls_score, label=labels_ohem,
+                                            normalization='valid', use_ignore=True, ignore_label=-1)
+            bbox_loss_ = bbox_weights_ohem * mx.sym.smooth_l1(name='bbox_loss_', scalar=1.0,
+                                                              data=(bbox_pred - bbox_target))
+            bbox_loss = mx.sym.MakeLoss(name='bbox_loss', data=bbox_loss_,
+                                        grad_scale=1.0 / cfg.TRAIN.BATCH_ROIS_OHEM)
+            rcnn_label = labels_ohem
 
             # reshape output
             rcnn_label = mx.sym.Reshape(data=rcnn_label, shape=(cfg.TRAIN.BATCH_IMAGES, -1), name='label_reshape')

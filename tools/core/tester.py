@@ -11,21 +11,7 @@ from nms.nms import py_nms_wrapper, py_softnms_wrapper
 from utils.PrefetchingIter import PrefetchingIter
 
 
-def get_new_boxes(x1, y1, x2, y2):
-    width, height, center_x, center_y = x2 - x1, y2 - y1, (x1 + x2) / 2, (y1 + y2) / 2
-    width, height, center_x, center_y = width * 3.61432807, height * 7.42986096, center_x - width * -0.08806902, center_y - height * -2.75646702
-    n_x1, n_y1, n_x2, n_y2 = center_x - width / 2, center_y - height / 2, center_x + width / 2, center_y + height / 2
-    area = width * height
-    return [n_x1, n_y1, n_x2, n_y2], area
 
-
-def rescore(overlap, p_scores, f_score, thresh):
-    new_score = np.exp((overlap - 0.5) * f_score * thresh)
-    new_score[np.where(overlap==0)] = 1
-    p_scores = np.minimum(1.0, p_scores * new_score)
-    return p_scores
-
-'''
 def relation(pedestrian_boxes, face_boxes):
     f_x1, f_y1, f_x2, f_y2, f_scores = face_boxes[:, 0], face_boxes[:, 1], face_boxes[:, 2], face_boxes[:, 3], face_boxes[:, 4]
     p_x1, p_y1, p_x2, p_y2, p_scores = pedestrian_boxes[:, 0], pedestrian_boxes[:, 1], pedestrian_boxes[:, 2], pedestrian_boxes[:, 3], pedestrian_boxes[:, 4]
@@ -40,8 +26,6 @@ def relation(pedestrian_boxes, face_boxes):
         if is_in:
             idx.append(i)
     return face_boxes[idx], len(idx) != len(face_boxes)
-'''
-
 
 class Predictor(object):
     def __init__(self, symbol, data_names, label_names,

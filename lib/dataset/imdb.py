@@ -7,17 +7,15 @@ from multiprocessing import Pool
 
 
 class IMDB(object):
-    def __init__(self, name, image_set, root_path, dataset_path, result_path=None):
+    def __init__(self, name, image_set, root_path, result_path=None):
         """
         basic information about an image database
         :param name: name of image database will be used for any output
         :param root_path: root path store cache and proposal data
-        :param dataset_path: dataset path store images and image lists
         """
         self.name = name + '_' + image_set
         self.image_set = image_set
         self.root_path = root_path
-        self.data_path = dataset_path
         self._result_path = result_path
 
         # abstract attributes
@@ -75,21 +73,10 @@ class IMDB(object):
         return box_list
 
     def load_rpn_roidb(self, gt_roidb):
-        """
-        turn rpn detection boxes into roidb
-        :param gt_roidb: [image_index]['boxes', 'gt_classes', 'gt_overlaps', 'flipped']
-        :return: roidb: [image_index]['boxes', 'gt_classes', 'gt_overlaps', 'flipped']
-        """
         box_list = self.load_rpn_data()
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
     def rpn_roidb(self, gt_roidb, append_gt=False):
-        """
-        get rpn roidb and ground truth roidb
-        :param gt_roidb: ground truth roidb
-        :param append_gt: append ground truth
-        :return: roidb of rpn
-        """
         if append_gt:
             print 'appending ground truth annotations'
             rpn_roidb = self.load_rpn_roidb(gt_roidb)

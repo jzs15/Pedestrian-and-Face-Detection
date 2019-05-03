@@ -12,7 +12,7 @@ from core.tester import Predictor, pred_eval
 from utils.load_model import load_param
 
 
-def test_rcnn(cfg, dataset, image_set, root_path, dataset_path,
+def test_rcnn(cfg, dataset, image_set, root_path,
               ctx, prefix, epoch,
               vis, ignore_cache, shuffle, thresh, logger=None, output_path=None):
     if not logger:
@@ -24,7 +24,7 @@ def test_rcnn(cfg, dataset, image_set, root_path, dataset_path,
 
     sym_instance = eval(cfg.symbol)()
     sym = sym_instance.get_symbol(cfg, is_train=False)
-    imdb = eval(dataset)(image_set, root_path, dataset_path, result_path=output_path, is_test=True)
+    imdb = eval(dataset)(image_set, root_path, result_path=output_path, is_test=True)
     roidb = imdb.gt_roidb()
 
     # get test data iter

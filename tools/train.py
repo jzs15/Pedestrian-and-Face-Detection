@@ -18,7 +18,7 @@ def parse_args():
     update_config(args.cfg)
 
     # training
-    parser.add_argument('--frequent', help='frequency of logging', default=config.default.frequent, type=int)
+    parser.add_argument('--frequent', help='frequency of logging', default=100, type=int)
     args = parser.parse_args()
     return args
 
@@ -65,8 +65,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
 
     # load dataset and prepare imdb for training
     image_sets = [iset for iset in config.dataset.image_set.split('+')]
-    roidbs = [load_gt_roidb(config.dataset.dataset, image_set, config.dataset.root_path, config.dataset.dataset_path,
-                            flip=config.TRAIN.FLIP)
+    roidbs = [load_gt_roidb(config.dataset.dataset, image_set, config.dataset.root_path, flip=config.TRAIN.FLIP)
               for image_set in image_sets]
     roidb = merge_roidb(roidbs)
     roidb = filter_roidb(roidb, config)
@@ -151,7 +150,7 @@ def train_net(args, ctx, pretrained, epoch, prefix, begin_epoch, end_epoch, lr, 
 
     # train
     mod.fit(train_data, eval_metric=eval_metrics, epoch_end_callback=epoch_end_callback,
-            batch_end_callback=batch_end_callback, kvstore=config.default.kvstore,
+            batch_end_callback=batch_end_callback,
             optimizer='sgd', optimizer_params=optimizer_params,
             arg_params=arg_params, aux_params=aux_params, begin_epoch=begin_epoch, num_epoch=end_epoch)
 

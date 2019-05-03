@@ -37,14 +37,13 @@ def coco_results_one_category_kernel(data_pack):
 
 
 class coco(IMDB):
-    def __init__(self, image_set, root_path, data_path, result_path, is_test=False):
-        super(coco, self).__init__('COCO', image_set, root_path, data_path, result_path)
+    def __init__(self, image_set, root_path, result_path, is_test=False):
+        super(coco, self).__init__('COCO', image_set, root_path, result_path)
         self.root_path = root_path
-        self.data_path = data_path
         if not is_test:
             self.coco = COCO(self._get_ann_file())
         else:
-            self.test_dir = os.path.join(self.data_path, 'images', image_set)
+            self.test_dir = os.path.join(self.root_path, 'images', image_set)
             self.coco = COCO(None)
         self.is_test = is_test
 
@@ -63,7 +62,7 @@ class coco(IMDB):
         self.data_name = image_set
 
     def _get_ann_file(self):
-        return os.path.join(self.data_path, 'annotations', self.image_set + '.json')
+        return os.path.join(self.root_path, 'annotations', self.image_set + '.json')
 
     def _load_image_set_index(self):
         """ image id: int """
@@ -75,7 +74,7 @@ class coco(IMDB):
 
     def image_path_from_index(self, index):
         filename = self.coco.imgs[index]['file_name']
-        image_path = os.path.join(self.data_path, 'images', self.data_name, filename)
+        image_path = os.path.join(self.root_path, 'images', self.data_name, filename)
         assert os.path.exists(image_path), 'Path does not exist: {}'.format(image_path)
         return image_path
 

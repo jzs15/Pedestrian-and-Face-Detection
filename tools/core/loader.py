@@ -13,7 +13,6 @@ def par_assign_anchor_wrapper(cfg, iroidb, feat_sym, feat_strides, anchor_scales
     data_shape = {k: v.shape for k, v in data.items()}
     del data_shape['im_info']
 
-    # add gt_boxes to data for e2e
     data['gt_boxes'] = rpn_label['gt_boxes'][np.newaxis, :, :]
 
     feat_shape = [y[1] for y in [x.infer_shape(**data_shape) for x in feat_sym]]
@@ -153,10 +152,7 @@ class PyramidAnchorIterator(mx.io.DataIter):
         self.index = np.arange(self.size)
 
         # decide data and label names
-        if self.cfg.TRAIN.END2END:
-            self.data_name = ['data', 'im_info', 'gt_boxes']
-        else:
-            self.data_name = ['data']
+        self.data_name = ['data', 'im_info', 'gt_boxes']
         self.feat_pyramid_level = np.log2(self.cfg.network.RPN_FEAT_STRIDE).astype(int)
         # self.label_name = ['label_p' + str(x) for x in self.feat_pyramid_level] +\
         #                   ['bbox_target_p' + str(x) for x in self.feat_pyramid_level] +\

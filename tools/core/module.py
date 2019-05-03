@@ -427,7 +427,7 @@ class Module(BaseModule):
         self._exec_group.reshape(self._data_shapes, self._label_shapes)
 
 
-    def init_optimizer(self, kvstore='local', optimizer='sgd',
+    def init_optimizer(self, kvstore='device', optimizer='sgd',
                        optimizer_params=(('learning_rate', 0.01),), force_init=False):
         """Install and initialize optimizers.
 
@@ -852,7 +852,7 @@ class MutableModule(BaseModule):
         """
         self._curr_module.save_checkpoint(prefix, epoch, save_optimizer_states)
 
-    def init_optimizer(self, kvstore='local', optimizer='sgd',
+    def init_optimizer(self, kvstore='device', optimizer='sgd',
                        optimizer_params=(('learning_rate', 0.01),), force_init=False):
         assert self.binded and self.params_initialized
         if self.optimizer_initialized and not force_init:
@@ -865,75 +865,13 @@ class MutableModule(BaseModule):
         self.optimizer_initialized = True
 
     def fit(self, train_data, eval_data=None, eval_metric='acc',
-            epoch_end_callback=None, batch_end_callback=None, kvstore='local',
+            epoch_end_callback=None, batch_end_callback=None, kvstore='device',
             optimizer='sgd', optimizer_params=(('learning_rate', 0.01),),
             eval_end_callback=None,
             eval_batch_end_callback=None, initializer=Uniform(0.01),
             arg_params=None, aux_params=None, allow_missing=False,
             force_rebind=False, force_init=False, begin_epoch=0, num_epoch=None,
             validation_metric=None, monitor=None, prefix=None, state=None):
-        """Train the module parameters.
-
-        Parameters
-        ----------
-        train_data : DataIter
-        eval_data : DataIter
-            If not `None`, will be used as validation set and evaluate the performance
-            after each epoch.
-        eval_metric : str or EvalMetric
-            Default `'acc'`. The performance measure used to display during training.
-        epoch_end_callback : function or list of function
-            Each callback will be called with the current `epoch`, `symbol`, `arg_params`
-            and `aux_params`.
-        batch_end_callback : function or list of function
-            Each callback will be called with a `BatchEndParam`.
-        kvstore : str or KVStore
-            Default `'local'`.
-        optimizer : str or Optimizer
-            Default `'sgd'`
-        optimizer_params : dict
-            Default `(('learning_rate', 0.01),)`. The parameters for the optimizer constructor.
-            The default value is not a `dict`, just to avoid pylint warning on dangerous
-            default values.
-        eval_end_callback : function or list of function
-            These will be called at the end of each full evaluation, with the metrics over
-            the entire evaluation set.
-        eval_batch_end_callback : function or list of function
-            These will be called at the end of each minibatch during evaluation
-        initializer : Initializer
-            Will be called to initialize the module parameters if not already initialized.
-        arg_params : dict
-            Default `None`, if not `None`, should be existing parameters from a trained
-            model or loaded from a checkpoint (previously saved model). In this case,
-            the value here will be used to initialize the module parameters, unless they
-            are already initialized by the user via a call to `init_params` or `fit`.
-            `arg_params` has higher priority to `initializer`.
-        aux_params : dict
-            Default `None`. Similar to `arg_params`, except for auxiliary states.
-        allow_missing : bool
-            Default `False`. Indicate whether we allow missing parameters when `arg_params`
-            and `aux_params` are not `None`. If this is `True`, then the missing parameters
-            will be initialized via the `initializer`.
-        force_rebind : bool
-            Default `False`. Whether to force rebinding the executors if already binded.
-        force_init : bool
-            Default `False`. Indicate whether we should force initialization even if the
-            parameters are already initialized.
-        begin_epoch : int
-            Default `0`. Indicate the starting epoch. Usually, if we are resuming from a
-            checkpoint saved at a previous training phase at epoch N, then we should specify
-            this value as N+1.
-        num_epoch : int
-            Number of epochs to run training.
-
-        Examples
-        --------
-        An example of using fit for training::
-            >>> #Assume training dataIter and validation dataIter are ready
-            >>> mod.fit(train_data=train_dataiter, eval_data=val_dataiter,
-                        optimizer_params={'learning_rate':0.01, 'momentum': 0.9},
-                        num_epoch=10)
-        """
         assert num_epoch is not None, 'please specify number of epochs'
 
         self.bind(data_shapes=train_data.provide_data, label_shapes=train_data.provide_label,

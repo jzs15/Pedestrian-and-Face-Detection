@@ -98,18 +98,6 @@ def get_rcnn_batch(roidb, cfg):
 
 def sample_rois(rois, fg_rois_per_image, rois_per_image, num_classes, cfg,
                 labels=None, overlaps=None, bbox_targets=None, gt_boxes=None):
-    """
-    generate random sample of ROIs comprising foreground and background examples
-    :param rois: all_rois [n, 4]; e2e: [n, 5] with batch_index
-    :param fg_rois_per_image: foreground roi number
-    :param rois_per_image: total roi number
-    :param num_classes: number of classes
-    :param labels: maybe precomputed
-    :param overlaps: maybe precomputed (max_overlaps)
-    :param bbox_targets: maybe precomputed
-    :param gt_boxes: optional for e2e [n, 5] (x1, y1, x2, y2, cls)
-    :return: (labels, rois, bbox_targets, bbox_weights)
-    """
     if labels is None:
         overlaps = bbox_overlaps(rois[:, 1:].astype(np.float), gt_boxes[:, :4].astype(np.float))
         gt_assignment = overlaps.argmax(axis=1)
@@ -153,9 +141,7 @@ def sample_rois(rois, fg_rois_per_image, rois_per_image, num_classes, cfg,
         bbox_target_data = bbox_targets[keep_indexes, :]
     else:
         targets = bbox_transform(rois[:, 1:], gt_boxes[gt_assignment[keep_indexes], :4])
-        if cfg.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED:
-            targets = ((targets - np.array(cfg.TRAIN.BBOX_MEANS))
-                       / np.array(cfg.TRAIN.BBOX_STDS))
+        targets = ((targets - np.array(cfg.TRAIN.BBOX_MEANS)) / np.array(cfg.TRAIN.BBOX_STDS))
         bbox_target_data = np.hstack((labels[:, np.newaxis], targets))
 
     bbox_targets, bbox_weights = \

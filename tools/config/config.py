@@ -12,8 +12,6 @@ config.SCALES = [(600, 1000)]  # first is scale (the shorter side); second is ma
 config.TEST_SCALES = [(600, 1000)]
 # default training
 config.default = edict()
-config.default.frequent = 20
-config.default.kvstore = 'device'
 
 # network related params
 config.network = edict()
@@ -35,7 +33,6 @@ config.dataset.dataset = 'PascalVOC'
 config.dataset.image_set = '2007_trainval'
 config.dataset.test_image_set = '2007_test'
 config.dataset.root_path = './data'
-config.dataset.dataset_path = './data/VOCdevkit'
 config.dataset.NUM_CLASSES = 21
 
 
@@ -51,7 +48,7 @@ config.TRAIN.momentum = 0.9
 config.TRAIN.wd = 0.0005
 config.TRAIN.begin_epoch = 0
 config.TRAIN.end_epoch = 0
-config.TRAIN.model_prefix = ''
+config.TRAIN.model_prefix = 'model'
 config.TRAIN.nms_loss_scale = 1.0
 config.TRAIN.nms_pos_scale = 4.0
 
@@ -77,23 +74,16 @@ config.TRAIN.ALTERNATE.rpn3_epoch = 0       # recommend 3
 
 # whether resume training
 config.TRAIN.RESUME = False
-# whether flip image
 config.TRAIN.FLIP = True
-# whether shuffle image
 config.TRAIN.SHUFFLE = True
-# whether use OHEM
-config.TRAIN.ENABLE_OHEM = False
-# size of images for each device, 2 for rcnn, 1 for rpn and e2e
-config.TRAIN.BATCH_IMAGES = 2
-# e2e changes behavior of anchor loader and metric
-config.TRAIN.END2END = False
+config.TRAIN.BATCH_IMAGES = 1
 # group images with similar aspect ratio
 config.TRAIN.ASPECT_GROUPING = True
 
 # R-CNN
 # rcnn rois batch size
-config.TRAIN.BATCH_ROIS = 128
-config.TRAIN.BATCH_ROIS_OHEM = 128
+config.TRAIN.BATCH_ROIS = -1
+config.TRAIN.BATCH_ROIS_OHEM = 512
 # rcnn rois sampling params
 config.TRAIN.FG_FRACTION = 0.25
 config.TRAIN.FG_THRESH = 0.5
@@ -112,20 +102,17 @@ config.TRAIN.RPN_POSITIVE_OVERLAP = 0.7
 config.TRAIN.RPN_NEGATIVE_OVERLAP = 0.3
 config.TRAIN.RPN_CLOBBER_POSITIVES = False
 # rpn bounding box regression params
-config.TRAIN.RPN_BBOX_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
+config.TRAIN.RPN_BBOX_WEIGHTS = [1.0, 1.0, 1.0, 1.0]
 config.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
-# used for end2end training
 # RPN proposal
-config.TRAIN.CXX_PROPOSAL = True
 config.TRAIN.RPN_NMS_THRESH = 0.7
-config.TRAIN.RPN_PRE_NMS_TOP_N = 12000
-config.TRAIN.RPN_POST_NMS_TOP_N = 2000
-config.TRAIN.RPN_MIN_SIZE = config.network.RPN_FEAT_STRIDE
+config.TRAIN.RPN_PRE_NMS_TOP_N = 6000
+config.TRAIN.RPN_POST_NMS_TOP_N = 1000
+config.TRAIN.RPN_MIN_SIZE = 0
 # approximate bounding box regression
-config.TRAIN.BBOX_NORMALIZATION_PRECOMPUTED = False
-config.TRAIN.BBOX_MEANS = (0.0, 0.0, 0.0, 0.0)
-config.TRAIN.BBOX_STDS = (0.1, 0.1, 0.2, 0.2)
+config.TRAIN.BBOX_MEANS = [0.0, 0.0, 0.0, 0.0]
+config.TRAIN.BBOX_STDS = [0.1, 0.1, 0.2, 0.2]
 
 config.TEST = edict()
 
@@ -134,17 +121,16 @@ config.TEST = edict()
 config.TEST.BATCH_IMAGES = 1
 
 # RPN proposal
-config.TEST.CXX_PROPOSAL = True
 config.TEST.RPN_NMS_THRESH = 0.7
 config.TEST.RPN_PRE_NMS_TOP_N = 6000
-config.TEST.RPN_POST_NMS_TOP_N = 300
-config.TEST.RPN_MIN_SIZE = config.network.RPN_FEAT_STRIDE
+config.TEST.RPN_POST_NMS_TOP_N = 1000
+config.TEST.RPN_MIN_SIZE = 0
 
 # RPN generate proposal
 config.TEST.PROPOSAL_NMS_THRESH = 0.7
 config.TEST.PROPOSAL_PRE_NMS_TOP_N = 20000
 config.TEST.PROPOSAL_POST_NMS_TOP_N = 2000
-config.TEST.PROPOSAL_MIN_SIZE = config.network.RPN_FEAT_STRIDE
+config.TEST.PROPOSAL_MIN_SIZE = 0
 
 # RCNN nms
 config.TEST.NMS = 0.3

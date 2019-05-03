@@ -10,29 +10,21 @@ def get_rpn_names():
 
 def get_rcnn_names(cfg):
     pred = ['rcnn_cls_prob', 'rcnn_bbox_loss']
-    label = ['rcnn_label', 'rcnn_bbox_target', 'rcnn_bbox_weight']
-    if cfg.TRAIN.ENABLE_OHEM or cfg.TRAIN.END2END:
-        pred.append('rcnn_label')
-    if cfg.TRAIN.END2END:
-        rpn_pred, rpn_label = get_rpn_names()
-        pred = rpn_pred + pred
-        label = rpn_label
+    pred.append('rcnn_label')
+    rpn_pred, rpn_label = get_rpn_names()
+    pred = rpn_pred + pred
+    label = rpn_label
     return pred, label
 
 
 class RCNNFGAccuracy(mx.metric.EvalMetric):
     def __init__(self, cfg):
         super(RCNNFGAccuracy, self).__init__('R-CNN FG Accuracy')
-        self.e2e = cfg.TRAIN.END2END
-        self.ohem = cfg.TRAIN.ENABLE_OHEM
         self.pred, self.label = get_rcnn_names(cfg)
 
     def update(self, labels, preds):
         pred = preds[self.pred.index('rcnn_cls_prob')]
-        if self.ohem or self.e2e:
-            label = preds[self.pred.index('rcnn_label')]
-        else:
-            label = labels[self.label.index('rcnn_label')]
+        label = preds[self.pred.index('rcnn_label')]
         num_classes = pred.shape[-1]
         pred_label = pred.asnumpy().reshape(-1, num_classes).argmax(axis=1).astype('int32')
         # selection of ground truth label is different from softmax or sigmoid classifier
@@ -49,16 +41,11 @@ class RCNNFGAccuracy(mx.metric.EvalMetric):
 class RPNFGFraction(mx.metric.EvalMetric):
     def __init__(self, cfg):
         super(RPNFGFraction, self).__init__('Proposal FG Fraction')
-        self.e2e = cfg.TRAIN.END2END
-        self.ohem = cfg.TRAIN.ENABLE_OHEM
         self.pred, self.label = get_rcnn_names(cfg)
 
     def update(self, labels, preds):
         pred = preds[self.pred.index('rcnn_cls_prob')]
-        if self.ohem or self.e2e:
-            label = preds[self.pred.index('rcnn_label')]
-        else:
-            label = labels[self.label.index('rcnn_label')]
+        label = preds[self.pred.index('rcnn_label')]
         num_classes = pred.shape[-1]
         # selection of ground truth label is different from softmax or sigmoid classifier
         label = label.asnumpy().reshape(-1, ).astype('int32')
@@ -95,16 +82,11 @@ class RPNAccMetric(mx.metric.EvalMetric):
 class RCNNAccMetric(mx.metric.EvalMetric):
     def __init__(self, cfg):
         super(RCNNAccMetric, self).__init__('RCNNAcc')
-        self.e2e = cfg.TRAIN.END2END
-        self.ohem = cfg.TRAIN.ENABLE_OHEM
         self.pred, self.label = get_rcnn_names(cfg)
 
     def update(self, labels, preds):
         pred = preds[self.pred.index('rcnn_cls_prob')]
-        if self.ohem or self.e2e:
-            label = preds[self.pred.index('rcnn_label')]
-        else:
-            label = labels[self.label.index('rcnn_label')]
+        label = preds[self.pred.index('rcnn_label')]
 
         last_dim = pred.shape[-1]
         pred_label = pred.asnumpy().reshape(-1, last_dim).argmax(axis=1).astype('int32')
@@ -149,16 +131,11 @@ class RPNLogLossMetric(mx.metric.EvalMetric):
 class RCNNLogLossMetric(mx.metric.EvalMetric):
     def __init__(self, cfg):
         super(RCNNLogLossMetric, self).__init__('RCNNLogLoss')
-        self.e2e = cfg.TRAIN.END2END
-        self.ohem = cfg.TRAIN.ENABLE_OHEM
         self.pred, self.label = get_rcnn_names(cfg)
 
     def update(self, labels, preds):
         pred = preds[self.pred.index('rcnn_cls_prob')]
-        if self.ohem or self.e2e:
-            label = preds[self.pred.index('rcnn_label')]
-        else:
-            label = labels[self.label.index('rcnn_label')]
+        label = preds[self.pred.index('rcnn_label')]
 
         last_dim = pred.shape[-1]
         pred = pred.asnumpy().reshape(-1, last_dim)
@@ -195,19 +172,11 @@ class RPNL1LossMetric(mx.metric.EvalMetric):
 class RCNNL1LossMetric(mx.metric.EvalMetric):
     def __init__(self, cfg):
         super(RCNNL1LossMetric, self).__init__('RCNNL1Loss')
-        self.e2e = cfg.TRAIN.END2END
-        self.ohem = cfg.TRAIN.ENABLE_OHEM
         self.pred, self.label = get_rcnn_names(cfg)
 
     def update(self, labels, preds):
         bbox_loss = preds[self.pred.index('rcnn_bbox_loss')].asnumpy()
-        if self.ohem:
-            label = preds[self.pred.index('rcnn_label')].asnumpy()
-        else:
-            if self.e2e:
-                label = preds[self.pred.index('rcnn_label')].asnumpy()
-            else:
-                label = labels[self.label.index('rcnn_label')].asnumpy()
+        label = preds[self.pred.index('rcnn_label')].asnumpy()
 
         # calculate num_inst (average on those kept anchors)
         num_inst = np.sum(label != -1)
